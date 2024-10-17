@@ -26,6 +26,11 @@ foreach( program ectrans-benchmark )
   endif()
 
   if( HAVE_GPU )
+    # We have issues linking with -cuda (which is required to use the PINNED keyword in CUDA
+    # Fortran) when using NVHPC < 24.9 on RHEL systems (which is most of the ones we use)
+    # As a workaround, we don't use pinned arrays for those systems
+    set( is_nvhpc "$<COMPILE_LANG_AND_ID:Fortran,NVHPC>" )
+    set( at_least_24.9 "$<VERSION_GREATER_EQUAL:$<Fortran_COMPILER_VERSION>,24.9>" )
     foreach( prec dp sp )
       if( HAVE_${prec} )
         ecbuild_add_executable( TARGET  ${program}-gpu-${prec}
@@ -38,13 +43,13 @@ foreach( program ectrans-benchmark )
                                   OpenACC::OpenACC_Fortran
                                 DEFINITIONS
                                   VERSION="gpu"
-                                  $<$<COMPILE_LANG_AND_ID:Fortran,NVHPC>:USE_PINNED>
+                                  $<$<AND:${is_nvhpc},${at_least_24.9}>:USE_PINNED>
         )
         target_compile_options(${program}-gpu-${prec} PUBLIC
-          $<$<COMPILE_LANG_AND_ID:Fortran,NVHPC>:-cuda>
+          $<$<AND:${is_nvhpc},${at_least_24.9}>:-cuda>
         )
         target_link_options(${program}-gpu-${prec} PUBLIC
-          $<$<LINK_LANG_AND_ID:Fortran,NVHPC>:-cuda>
+          $<$<AND:${is_nvhpc},${at_least_24.9}>:-cuda>
         )
       endif()
     endforeach( prec )

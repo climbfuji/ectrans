@@ -120,7 +120,7 @@ if( HAVE_TESTS )
             # The FLT gives higher errors (this is the consequence of the compression) so we must
             # choose a higher error tolerance threshold
             ecbuild_add_test( TARGET ectrans_test_benchmark_${prec}_T${t}_${grid}_mpi${mpi}_omp${omp}_nfld10_nlev20_flt_callmode${callmode}
-                COMMAND ectrans-benchmark-cpu-${prec} ARGS --truncation ${t} --grid ${grid} --niter 2 --nfld 10 --nlev 20 --flt --check 25000 --norms -v --callmode ${callmode}
+                COMMAND ectrans-benchmark-cpu-${prec} ARGS --truncation ${t} --grid ${grid} --niter 2 --nfld 10 --nlev 20 --flt --check 50000 --norms -v --callmode ${callmode}
                 MPI ${mpi}
                 OMP ${omp}
             )

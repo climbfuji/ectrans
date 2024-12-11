@@ -269,8 +269,12 @@ contains
 
     do i = 1, num_ranges
       call c_f_pointer(common_ptrs(i)%ptr, pp, shape=[common_ptrs(i)%sz/c_sizeof(pp(1))])
-      !!call acc_create_async(pp, common_ptrs(i)%sz, async=stream_act)
+#ifdef OMPGPU
+      !$omp target enter data map(alloc:pp)
+#endif
+#ifdef ACCGPU
       call acc_create(pp, int(common_ptrs(i)%sz))
+#endif
     enddo
   end subroutine
   subroutine ext_acc_copyin(ptrs, stream)
@@ -296,8 +300,12 @@ contains
 
     do i = 1, num_ranges
       call c_f_pointer(common_ptrs(i)%ptr, pp, shape=[common_ptrs(i)%sz/c_sizeof(pp(1))])
-      !!call acc_copyin_async(pp, common_ptrs(i)%sz, async=stream_act)
+#ifdef OMPGPU
+      !$omp target enter data map(to:pp)
+#endif
+#ifdef ACCGPU
       call acc_copyin(pp, int(common_ptrs(i)%sz))
+#endif
     enddo
   end subroutine
   subroutine ext_acc_copyout(ptrs, stream)
@@ -323,8 +331,12 @@ contains
 
     do i = 1, num_ranges
       call c_f_pointer(common_ptrs(i)%ptr, pp, shape=[common_ptrs(i)%sz/c_sizeof(pp(1))])
-      !!call acc_copyout_async(pp, common_ptrs(i)%sz, async=stream_act)
+#ifdef OMPGPU
+      !$omp target exit data map(from:pp)
+#endif
+#ifdef ACCGPU
       call acc_copyout(pp, int(common_ptrs(i)%sz))
+#endif
     enddo
   end subroutine
   subroutine ext_acc_delete(ptrs, stream)
@@ -350,8 +362,12 @@ contains
 
     do i = 1, num_ranges
       call c_f_pointer(common_ptrs(i)%ptr, pp, shape=[common_ptrs(i)%sz/c_sizeof(pp(1))])
-      !!call acc_delete_async(pp, common_ptrs(i)%sz, async=stream_act)
+#ifdef OMPGPU
+      !$omp target exit data map(delete:pp)
+#endif
+#ifdef ACCGPU
       call acc_delete(pp, int(common_ptrs(i)%sz))
+#endif
     enddo
   end subroutine
 end module

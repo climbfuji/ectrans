@@ -159,6 +159,11 @@ CONTAINS
           FROM_RECV = IOFFR(IRANK) + 1
           TO_RECV = FROM_RECV + ILENR(IRANK) - 1
 #ifdef OMPGPU
+          !$OMP TARGET TEAMS DEFAULT(NONE) &
+          !$OMP& SHARED(PFBUF,PFBUF_IN,FROM_RECV,TO_RECV,FROM_SEND,TO_SEND) &
+          !$OMP& MAP(TO:FROM_RECV,TO_RECV,FROM_SEND,TO_SEND)
+          !$OMP PARALLEL
+          !$OMP WORKSHARE
 #endif
 #ifdef ACCGPU
 #ifdef __HIP_PLATFORM_AMD__
@@ -170,6 +175,9 @@ CONTAINS
 #endif
           PFBUF(FROM_RECV:TO_RECV) = PFBUF_IN(FROM_SEND:TO_SEND)
 #ifdef OMPGPU
+          !$OMP END WORKSHARE
+          !$OMP END PARALLEL
+          !$OMP END TARGET TEAMS
 #endif
 #ifdef ACCGPU
           !$ACC END KERNELS
@@ -186,13 +194,19 @@ CONTAINS
       CALL GSTATS(421,0)
 #ifdef USE_GPU_AWARE_MPI
 #ifdef OMPGPU
+      !$OMP TARGET DATA USE_DEVICE_PTR(PFBUF_IN,PFBUF)
 #endif
 #ifdef ACCGPU
       !$ACC HOST_DATA USE_DEVICE(PFBUF_IN, PFBUF)
 #endif
 #else
-    !! this is safe-but-slow fallback for running without GPU-aware MPI
-    !$ACC UPDATE HOST(PFBUF_IN,PFBUF)
+      !! this is safe-but-slow fallback for running without GPU-aware MPI
+#ifdef OMPGPU
+      !$OMP TARGET UPDATE FROM(PFBUF_IN,PFBUF)
+#endif
+#ifdef ACCGPU
+      !$ACC UPDATE HOST(PFBUF_IN,PFBUF)
+#endif
 #endif
 
 #if ECTRANS_HAVE_MPI
@@ -204,14 +218,20 @@ CONTAINS
 #endif
 
 #ifdef USE_GPU_AWARE_MPI
-#ifdef OMPGPU
-#endif
 #ifdef ACCGPU
       !$ACC END HOST_DATA
 #endif
+#ifdef OMPGPU
+      !$OMP END TARGET DATA
+#endif
 #else
-    !! this is safe-but-slow fallback for running without GPU-aware MPI
-    !$ACC UPDATE DEVICE(PFBUF)
+      !! this is safe-but-slow fallback for running without GPU-aware MPI
+#ifdef ACCGPU
+      !$ACC UPDATE DEVICE(PFBUF)
+#endif
+#ifdef OMPGPU
+      !$OMP TARGET UPDATE TO(PFBUF)
+#endif
 #endif
       IF (LSYNC_TRANS) THEN
         CALL GSTATS(441,0)
@@ -232,6 +252,8 @@ CONTAINS
       ISTA = D%NSTAGT0B(MYSETW)*2*KF_LEG+1
       CALL GSTATS(1608,0)
 #ifdef OMPGPU
+      !$OMP TARGET TEAMS DISTRIBUTE PARALLEL DO DEFAULT(NONE) SHARED(PFBUF,PFBUF_IN,ISTA,ILEN) &
+      !$OMP& MAP(TO:ISTA,ILEN)
 #endif
 #ifdef ACCGPU
       !$ACC PARALLEL LOOP DEFAULT(NONE) PRESENT(PFBUF,PFBUF_IN) FIRSTPRIVATE(ISTA,ILEN)
